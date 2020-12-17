@@ -4,6 +4,7 @@ target 'Activity_Tracker' do
   use_frameworks!
 
   # Pods for Activity_Tracker
-pod "SnapKit"
+pod "SnapKit";
+pod "RxSwift";pod "RxCocoa"
 end
 
