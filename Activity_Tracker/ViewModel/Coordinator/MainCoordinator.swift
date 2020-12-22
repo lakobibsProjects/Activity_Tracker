@@ -24,6 +24,7 @@ class MainCoordinator: Coordinator {
         let vc = MainViewController.init()
         vc.coordinator = self
         vc.vm = MainViewModel()
+        vc.vm?.attach(vc)
         navigationController.pushViewController(vc, animated: true)
     }
 

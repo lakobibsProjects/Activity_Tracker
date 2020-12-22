@@ -8,27 +8,21 @@
 
 import UIKit
 import SnapKit
-import RxSwift
-import RxCocoa
 
 class MainViewController: UIViewController {
     weak var coordinator: Coordinator?
     var vm: MainVMProtocol?
     
-    private let bag = DisposeBag()
-    
- 
-    
-    var dayBalancePointTableView: UITableView!
+    var dayBalancePointTableView = UITableView()
     //Not work. Add functional later
     //var hourBalancePointTableView: UITableView!
-    //var backButton: UIButton!
+    var backButton: UIButton!
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setup()
-        vm?.updateData()
+        
     }
 
     
@@ -42,12 +36,10 @@ class MainViewController: UIViewController {
     private func initViews(){
         self.view.backgroundColor = .systemGreen
         
-        dayBalancePointTableView = UITableView()
         dayBalancePointTableView.register(DayTableViewCell.self, forCellReuseIdentifier: "DayCell")
-        dayBalancePointTableView.rx.setDelegate(self).disposed(by: bag)
-        vm?.allDaysBalance.bind(to: dayBalancePointTableView.rx.items(cellIdentifier: "DayCell", cellType: DayTableViewCell.self)) { (row,item,cell) in
-            cell.configureCell(with: (item.date, item.points))
-        }.disposed(by: bag)
+        dayBalancePointTableView.delegate = self
+        dayBalancePointTableView.dataSource = self
+        vm!.updateData()
         
         //Not work. Add functional later
         /*hourBalancePointTableView = UITableView()
@@ -55,27 +47,41 @@ class MainViewController: UIViewController {
         hourBalancePointTableView.delegate = self
         hourBalancePointTableView.dataSource = self
         hourBalancePointTableView.isHidden = true
-        
+        */
         backButton = UIButton()
         backButton.setTitle("Back", for: .normal)
-        backButton.isHidden = true
-        backButton.addTarget(self, action: #selector(changeTable), for: .touchUpInside)*/
+        backButton.isHidden = false
+        backButton.addTarget(self, action: #selector(changeTable), for: .touchUpInside)
     }
     
-    
+    //observer
+    func update(_ vm: MainVMProtocol){
+        dayBalancePointTableView.reloadData()
+    }
     
     //MARK: - Event Handlers
     //Not work. Add functional later
-    /*@objc private func changeTable(){
+    @objc private func changeTable(){
         dayBalancePointTableView.isHidden = !dayBalancePointTableView.isHidden
-        hourBalancePointTableView.isHidden = !hourBalancePointTableView.isHidden
-        backButton.isHidden = !hourBalancePointTableView.isHidden
-    }*/
+        //hourBalancePointTableView.isHidden = !hourBalancePointTableView.isHidden
+        //backButton.isHidden = !hourBalancePointTableView.isHidden
+    }
 }
 
 //MARK: - TableView
-extension MainViewController: UITableViewDelegate{
-    private func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+extension MainViewController: UITableViewDelegate, UITableViewDataSource{
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return vm!.allDaysBalance.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = self.dayBalancePointTableView.dequeueReusableCell(withIdentifier: "DayCell", for: indexPath) as! DayTableViewCell
+        cell.configureCell(with: (vm!.allDaysBalance[indexPath.row].date,vm!.allDaysBalance[indexPath.row].balance))
+        return cell
+    }
+
+    internal func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         if section == 0{
             if tableView == dayBalancePointTableView{
                 return "Balance per day"
@@ -92,8 +98,8 @@ extension MainViewController{
     private func setupViews(){
         self.view.addSubview(dayBalancePointTableView)
         //Not work. Add functional later
-        /*self.view.addSubview(hourBalancePointTableView)
-        self.view.addSubview(backButton)*/
+        /*self.view.addSubview(hourBalancePointTableView)*/
+        self.view.addSubview(backButton)
     }
     
     private func setupConstraints(){
@@ -109,12 +115,12 @@ extension MainViewController{
             $0.bottom.equalToSuperview().inset(64)
             $0.top.equalToSuperview().inset(128)
         })
-        
+        */
         backButton.snp.makeConstraints({
             $0.leading.equalToSuperview().inset(16)
-            $0.bottom.equalTo(hourBalancePointTableView.snp.top).offset(8)
+            $0.bottom.equalTo(dayBalancePointTableView.snp.top).offset(8)
             $0.height.equalTo(64)
             $0.width.equalTo(128)
-        })*/
+        })
     }
 }

@@ -16,19 +16,48 @@ protocol AppleHealthServiceProtocol{
     func getData() -> [AppleHealthValue]
 }
 
+protocol AppleHealthServiceObservable: AppleHealthServiceProtocol{
+    func attach(_ observer: AppleHealthServiceObserver)
+    
+    func detach(subscriber filter: (AppleHealthServiceObserver) -> (Bool))
+}
+
+protocol AppleHealthServiceObserver{
+    func update(subject: AppleHealthServiceProtocol)
+}
+
+
 
 ///Class for reading Apple Health data and writing results
 class AppleHealthService: AppleHealthServiceProtocol{
     var reader: AppleHealthProvider = CSVReader()
     private var appleHealthValueArray: [AppleHealthValue] = []
     private var thread = DispatchQueue.global(qos: .background)
+    private lazy var observers = [AppleHealthServiceObserver]()
+    private var isCreated = false
+    
+    private static var i = 0
+    static var shared: AppleHealthService {
+        let instance = AppleHealthService()
+        if !instance.isCreated{
+            instance.updateInfo()
+            instance.isCreated = true
+            i = i + 1
+        }
+        
+      
+        return instance
+    }
+    
+    private init(){
+        
+    }
     
     //MARK: - AppleHealthServiceProtocol Functions
     /// Method, that returns balance points for complete period of observation
     ///
     /// - Returns: Array of AppleHealthValue
     func getData() -> [AppleHealthValue] {
-        updateInfo()
         return appleHealthValueArray
     }
     
@@ -57,7 +86,12 @@ class AppleHealthService: AppleHealthServiceProtocol{
                                         value: Int($0.value)!)
             })
             self.setIntervals()
+            DispatchQueue.main.async {
+                self.notify()
+            }
+            
         }
+        
     }
     
     /// set nextTimeInterval and previousTimeInterval for appleHealthValueArray
@@ -81,5 +115,25 @@ class AppleHealthService: AppleHealthServiceProtocol{
                 }
             }
         }
+    }
+}
+
+
+//MARK: - Observable
+extension AppleHealthService: AppleHealthServiceObservable{
+    /// Методы управления подпиской.
+    func attach(_ observer: AppleHealthServiceObserver) {
+        observers.append(observer)
+    }
+    
+    func detach(subscriber filter: (AppleHealthServiceObserver) -> (Bool)) {
+        guard let index = observers.firstIndex(where: filter) else { return }
+        observers.remove(at: index)
+    }
+    
+    /// Запуск обновления в каждом подписчике.
+    func notify() {
+        observers.forEach({ $0.update(subject: self)})
+        print("AppleHealthServiceObservable notify")
     }
 }

@@ -37,7 +37,7 @@ class DayTableViewCell: UITableViewCell {
     func configureCell(with data: (Date, Int)){
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d, yyyy"
-        dateLabel.text = "\(formatter.string(from: data.0)): \(data.1)"
+        dateLabel.text = "\(formatter.string(from: data.0)): \(data.1) %"
     }
     
     private func setup(){

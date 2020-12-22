@@ -10,8 +10,8 @@
 import Foundation
 
 ///Protocol that describe convertion of Apple Helth data to health points
-protocol AppleHealthConvertorProtocol: class {
-    var appleHealthService: AppleHealthServiceProtocol{ get }
+protocol AppleHealthConvertorProtocol: class, AppleHealthConvertorObservable {
+    var appleHealthService: AppleHealthServiceObservable { get }
     var dateSet: Set<Date> { get }
     
     func getAllDaysBalance() -> [(date:Date, points: Int, balance: Int)]
@@ -20,14 +20,40 @@ protocol AppleHealthConvertorProtocol: class {
     func convertToCSV()-> [Dictionary<String, AnyObject>]
 }
 
+protocol AppleHealthConvertorObservable{
+    func attach(_ observer: AppleHealthConvertorObserver)
+       
+    func detach(subscriber filter: (AppleHealthConvertorObserver) -> (Bool))
+}
+
+protocol AppleHealthConvertorObserver{
+    func update(subject: AppleHealthConvertorProtocol)
+}
+
+
 ///Class return data about inday activity
 class AppleHealthConvertor: AppleHealthConvertorProtocol{
-    var appleHealthService: AppleHealthServiceProtocol = AppleHealthService()
-    private var data: [AppleHealthValue]
+    var appleHealthService: AppleHealthServiceObservable = AppleHealthService.shared
+    //var observable: AppleHealthServiceObservable = AppleHealthService.shared
+    private var data: [AppleHealthValue] = []
+    private lazy var observers = [AppleHealthConvertorObserver]()
+    private var allDayBalance: [(date:Date, points: Int, balance: Int)] = []
+    private var isCreated = false
     var dateSet: Set<Date> { return Set(data.map({ return $0.day }))}
     
-    init() {
-        data = appleHealthService.getData()
+    static var shared: AppleHealthConvertor {
+        let instance = AppleHealthConvertor()
+        if !instance.isCreated{
+            instance.data = instance.appleHealthService.getData()
+            instance.appleHealthService.attach(instance)
+            //instance.updateAllDayBalance()
+            instance.isCreated = true
+        }
+        
+        return instance
+    }
+    
+    private init() {
     }
     
     //MARK: - AppleHealthConvertorProtocol Functions
@@ -37,19 +63,7 @@ class AppleHealthConvertor: AppleHealthConvertorProtocol{
     ///                       - day of observation
     ///                       - balance in percents
     func getAllDaysBalance() -> [(date:Date, points: Int, balance: Int)] {
-        var result = [(date:Date, points: Int, balance: Int)]()
-        let data = getAllBalancePoints()
-        
-        for date in dateSet {
-            let dayData = data.filter({$0.date == date})
-            var dayBalance = 0
-            for d in dayData{
-                dayBalance += d.points
-            }
-            result.append((date, dayBalance, dayBalance / 10 * 100))
-        }
-        
-        return result
+        return allDayBalance
     }
     
     
@@ -112,6 +126,23 @@ class AppleHealthConvertor: AppleHealthConvertorProtocol{
     }
     
     //MARK: - Support Functions
+    func updateAllDayBalance(){
+        var result = [(date:Date, points: Int, balance: Int)]()
+        let data = getAllBalancePoints()
+        
+        for date in dateSet {
+            let dayData = data.filter({$0.date == date})
+            var dayBalance = 0
+            for d in dayData{
+                dayBalance += d.points
+            }
+            result.append((date, dayBalance, dayBalance * 10))
+        }
+        print("updateAllDayBalance")
+        allDayBalance = result
+        notify()
+    }
+    
     /// Merge periods with short interval
     ///
     /// - Parameter value: parsed result of reading Apple Health file
@@ -156,5 +187,32 @@ class AppleHealthConvertor: AppleHealthConvertorProtocol{
         let value = first.value + second.value
         
         return AppleHealthValue(day: day, start: start, end: end, value: value)
+    }
+}
+
+//MARK: - Observable
+extension AppleHealthConvertor: AppleHealthConvertorObservable{
+    /// Методы управления подпиской.
+    func attach(_ observer: AppleHealthConvertorObserver) {
+        observers.append(observer)
+    }
+    
+    func detach(subscriber filter: (AppleHealthConvertorObserver) -> (Bool)) {
+        guard let index = observers.firstIndex(where: filter) else { return }
+        observers.remove(at: index)
+    }
+    
+      /// Запуск обновления в каждом подписчике.
+    func notify() {
+        observers.forEach({ $0.update(subject: self)})
+    }
+}
+
+//MARK: - Observer
+extension AppleHealthConvertor: AppleHealthServiceObserver{
+    func update(subject: AppleHealthServiceProtocol){
+        data = appleHealthService.getData()
+        updateAllDayBalance()
+        print("AppleHealthConvertor notify")
     }
 }
