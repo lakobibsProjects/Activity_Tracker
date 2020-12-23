@@ -19,7 +19,7 @@ struct AppleHealthValue{
     var value: Int
     var length: Int {
         if self.start < self.end{
-             return Int(DateInterval(start: self.start, end: self.end).duration)
+            return Int(DateInterval(start: self.start, end: self.end).duration)
         }else{
             let dateFormatter = DateFormatter()
             dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX

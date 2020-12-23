@@ -20,8 +20,10 @@ protocol AppleHealthProvider{
 
 /// A class that read .csv file and parse it
 struct CSVReader: CSVReaderProtocol, AppleHealthProvider{
-    private let path = "/Users/user166683/Desktop/Projects/Activity_Tracker/Activity_Tracker/Resources/mobile_test_inputs.csv"//TODO: change to relative path
-    //let path = Bundle.main.resourcePath! //Bundle.main.bundleURL.appendingPathComponent("Activity_Tracker/Resources/mobile_test_inputs.csv")
+    //absolute path
+    //private let path = "/Users/user166683/Desktop/Projects/Activity_Tracker/Activity_Tracker/Resources/mobile_test_inputs.csv"
+    //relative path
+    private let path = Bundle.main.bundleURL.appendingPathComponent("Activity_Tracker/Resources/mobile_test_inputs.csv")
     private var csvString: String?
     
     //MARK: - CSVReaderProtocol Methods
@@ -51,7 +53,7 @@ struct CSVReader: CSVReaderProtocol, AppleHealthProvider{
     ///
     /// - Returns: array of AppleHealthUnit
     mutating func getHealthUnitArray() -> [AppleHealthUnit]{
-        return readAppleHealth(from: URL(fileURLWithPath: path))
+        return readAppleHealth(from: path)
     }
     
     //MARK: - Support Functions

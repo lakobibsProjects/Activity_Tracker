@@ -9,14 +9,16 @@
 import Foundation
 
 ///Protocol that describe working with AppleHelath
-protocol AppleHealthServiceProtocol{
+///Comment: implement AppleHealthServiceObserver when add instance of clas that eimplement this protocol
+protocol AppleHealthServiceProtocol: AppleHealthServiceObservable{
     var reader: AppleHealthProvider { get }
+    var writer: CSVWriterProtocol { get }
     
-    func writeData(_: [(String, AnyObject)])
+    func writeData(from array: [Dictionary<String, AnyObject>])
     func getData() -> [AppleHealthValue]
 }
 
-protocol AppleHealthServiceObservable: AppleHealthServiceProtocol{
+protocol AppleHealthServiceObservable{
     func attach(_ observer: AppleHealthServiceObserver)
     
     func detach(subscriber filter: (AppleHealthServiceObserver) -> (Bool))
@@ -30,28 +32,23 @@ protocol AppleHealthServiceObserver{
 
 ///Class for reading Apple Health data and writing results
 class AppleHealthService: AppleHealthServiceProtocol{
+    var writer: CSVWriterProtocol = CSVWriter()
     var reader: AppleHealthProvider = CSVReader()
     private var appleHealthValueArray: [AppleHealthValue] = []
     private var thread = DispatchQueue.global(qos: .background)
     private lazy var observers = [AppleHealthServiceObserver]()
-    private var isCreated = false
     
-    private static var i = 0
+    //begin singleton
     static var shared: AppleHealthService {
         let instance = AppleHealthService()
-        if !instance.isCreated{
-            instance.updateInfo()
-            instance.isCreated = true
-            i = i + 1
-        }
+        instance.updateInfo()
         
-      
         return instance
     }
     
     private init(){
-        
     }
+    //end singleton
     
     //MARK: - AppleHealthServiceProtocol Functions
     /// Method, that returns balance points for complete period of observation
@@ -62,10 +59,8 @@ class AppleHealthService: AppleHealthServiceProtocol{
     }
     
     /// Write data to .csv file
-    ///
-    /// - Parameter data to write
-    func writeData(_: [(String, AnyObject)]) {
-        
+    func writeData(from array: [Dictionary<String, AnyObject>]) {
+        writer.writeCSV(from: array)
     }
     
     //MARK: - Support Functions
@@ -121,19 +116,23 @@ class AppleHealthService: AppleHealthServiceProtocol{
 
 //MARK: - Observable
 extension AppleHealthService: AppleHealthServiceObservable{
-    /// Методы управления подпиской.
+    ///Add subscriber
+    ///
+    /// - Parameter _: subscriber to add
     func attach(_ observer: AppleHealthServiceObserver) {
         observers.append(observer)
     }
     
+    ///Remove subscriber
+    ///
+    /// - Parameter subscriber: subscriber to remove
     func detach(subscriber filter: (AppleHealthServiceObserver) -> (Bool)) {
         guard let index = observers.firstIndex(where: filter) else { return }
         observers.remove(at: index)
     }
     
-    /// Запуск обновления в каждом подписчике.
+    ///Notify all observers about changes
     func notify() {
         observers.forEach({ $0.update(subject: self)})
-        print("AppleHealthServiceObservable notify")
     }
 }

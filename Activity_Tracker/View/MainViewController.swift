@@ -17,22 +17,24 @@ class MainViewController: UIViewController {
     //Not work. Add functional later
     //var hourBalancePointTableView: UITableView!
     var backButton: UIButton!
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setup()
         
     }
-
+    
     
     //MARK: - Support Functions
+    ///setup all views
     private func setup(){
         initViews()
         setupViews()
         setupConstraints()
     }
     
+    ///initialization and set default state for view and each subview
     private func initViews(){
         self.view.backgroundColor = .systemGreen
         
@@ -43,18 +45,19 @@ class MainViewController: UIViewController {
         
         //Not work. Add functional later
         /*hourBalancePointTableView = UITableView()
-        hourBalancePointTableView.register(HourTableViewCell.self, forCellReuseIdentifier: "HourCell")
-        hourBalancePointTableView.delegate = self
-        hourBalancePointTableView.dataSource = self
-        hourBalancePointTableView.isHidden = true
-        */
+         hourBalancePointTableView.register(HourTableViewCell.self, forCellReuseIdentifier: "HourCell")
+         hourBalancePointTableView.delegate = self
+         hourBalancePointTableView.dataSource = self
+         hourBalancePointTableView.isHidden = true
+         */
         backButton = UIButton()
         backButton.setTitle("Back", for: .normal)
-        backButton.isHidden = false
+        backButton.isHidden = true
         backButton.addTarget(self, action: #selector(changeTable), for: .touchUpInside)
     }
     
     //observer
+    ///Reaction to change MainViewModel
     func update(_ vm: MainVMProtocol){
         dayBalancePointTableView.reloadData()
     }
@@ -80,7 +83,7 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource{
         cell.configureCell(with: (vm!.allDaysBalance[indexPath.row].date,vm!.allDaysBalance[indexPath.row].balance))
         return cell
     }
-
+    
     internal func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         if section == 0{
             if tableView == dayBalancePointTableView{
@@ -95,6 +98,8 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource{
 
 //MARK: - Layout
 extension MainViewController{
+    
+    ///setup hierarchy of views
     private func setupViews(){
         self.view.addSubview(dayBalancePointTableView)
         //Not work. Add functional later
@@ -102,6 +107,7 @@ extension MainViewController{
         self.view.addSubview(backButton)
     }
     
+    ///set constraints for all views
     private func setupConstraints(){
         dayBalancePointTableView.snp.makeConstraints({
             $0.leading.trailing.equalToSuperview().inset(16)
@@ -111,11 +117,11 @@ extension MainViewController{
         
         //Not work. Add functional later
         /*hourBalancePointTableView.snp.makeConstraints({
-            $0.leading.trailing.equalToSuperview().inset(16)
-            $0.bottom.equalToSuperview().inset(64)
-            $0.top.equalToSuperview().inset(128)
-        })
-        */
+         $0.leading.trailing.equalToSuperview().inset(16)
+         $0.bottom.equalToSuperview().inset(64)
+         $0.top.equalToSuperview().inset(128)
+         })
+         */
         backButton.snp.makeConstraints({
             $0.leading.equalToSuperview().inset(16)
             $0.bottom.equalTo(dayBalancePointTableView.snp.top).offset(8)

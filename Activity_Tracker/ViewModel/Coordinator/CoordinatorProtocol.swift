@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 
+///Protocol that establishes a way for segue
 protocol Coordinator: class {
     var navigationController: UINavigationController { get }
     func start()

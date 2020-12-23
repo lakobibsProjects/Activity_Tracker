@@ -11,7 +11,7 @@ import Foundation
 
 ///Protocol that describe convertion of Apple Helth data to health points
 protocol AppleHealthConvertorProtocol: class, AppleHealthConvertorObservable {
-    var appleHealthService: AppleHealthServiceObservable { get }
+    var appleHealthService: AppleHealthServiceProtocol { get }
     var dateSet: Set<Date> { get }
     
     func getAllDaysBalance() -> [(date:Date, points: Int, balance: Int)]
@@ -22,7 +22,7 @@ protocol AppleHealthConvertorProtocol: class, AppleHealthConvertorObservable {
 
 protocol AppleHealthConvertorObservable{
     func attach(_ observer: AppleHealthConvertorObserver)
-       
+    
     func detach(subscriber filter: (AppleHealthConvertorObserver) -> (Bool))
 }
 
@@ -33,29 +33,26 @@ protocol AppleHealthConvertorObserver{
 
 ///Class return data about inday activity
 class AppleHealthConvertor: AppleHealthConvertorProtocol{
-    var appleHealthService: AppleHealthServiceObservable = AppleHealthService.shared
-    //var observable: AppleHealthServiceObservable = AppleHealthService.shared
+    var appleHealthService: AppleHealthServiceProtocol = AppleHealthService.shared
+    
     private var data: [AppleHealthValue] = []
     private lazy var observers = [AppleHealthConvertorObserver]()
     private var allDayBalance: [(date:Date, points: Int, balance: Int)] = []
-    private var isCreated = false
     var dateSet: Set<Date> { return Set(data.map({ return $0.day }))}
     
+    //begin singleton
     static var shared: AppleHealthConvertor {
         let instance = AppleHealthConvertor()
-        if !instance.isCreated{
-            instance.data = instance.appleHealthService.getData()
-            instance.appleHealthService.attach(instance)
-            //instance.updateAllDayBalance()
-            instance.isCreated = true
-        }
+        instance.data = instance.appleHealthService.getData()
+        instance.appleHealthService.attach(instance)
+        //instance.updateAllDayBalance()
         
         return instance
     }
     
     private init() {
     }
-    
+    //end singleton
     //MARK: - AppleHealthConvertorProtocol Functions
     /// Method, that returns balance in days
     ///
@@ -126,7 +123,8 @@ class AppleHealthConvertor: AppleHealthConvertorProtocol{
     }
     
     //MARK: - Support Functions
-    func updateAllDayBalance(){
+    ///Update allDayBalance when change input data
+    private func updateAllDayBalance(){
         var result = [(date:Date, points: Int, balance: Int)]()
         let data = getAllBalancePoints()
         
@@ -138,7 +136,6 @@ class AppleHealthConvertor: AppleHealthConvertorProtocol{
             }
             result.append((date, dayBalance, dayBalance * 10))
         }
-        print("updateAllDayBalance")
         allDayBalance = result
         notify()
     }
@@ -192,17 +189,22 @@ class AppleHealthConvertor: AppleHealthConvertorProtocol{
 
 //MARK: - Observable
 extension AppleHealthConvertor: AppleHealthConvertorObservable{
-    /// Методы управления подпиской.
+    ///Add subscriber
+    ///
+    /// - Parameter _: subscriber to add
     func attach(_ observer: AppleHealthConvertorObserver) {
         observers.append(observer)
     }
     
+    ///Remove subscriber
+    ///
+    /// - Parameter subscriber: subscriber to remove
     func detach(subscriber filter: (AppleHealthConvertorObserver) -> (Bool)) {
         guard let index = observers.firstIndex(where: filter) else { return }
         observers.remove(at: index)
     }
     
-      /// Запуск обновления в каждом подписчике.
+    ///Notify all observers about changes
     func notify() {
         observers.forEach({ $0.update(subject: self)})
     }
@@ -210,9 +212,10 @@ extension AppleHealthConvertor: AppleHealthConvertorObservable{
 
 //MARK: - Observer
 extension AppleHealthConvertor: AppleHealthServiceObserver{
+    ///Reaction to change AppleHealthServiceObservable
     func update(subject: AppleHealthServiceProtocol){
         data = appleHealthService.getData()
         updateAllDayBalance()
-        print("AppleHealthConvertor notify")
+        appleHealthService.writeData(from: convertToCSV())
     }
 }
